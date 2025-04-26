@@ -13,21 +13,25 @@ export const Square = ({
     isPossibleMove: boolean;
     onClick: () => void;
 }) => {
-    const [row, col] = position.split('');
-    const isLight = (parseInt(row) + col.charCodeAt(0)) % 2 === 0;
+    const [colChar, row] = position.split('');
+    const col = colChar.charCodeAt(0) - 97;
+    const isLight = (parseInt(row) + col) % 2 === 0;
 
     return (
         <div
             onClick={onClick}
-            className={`w-16 h-16 flex items-center justify-center
+            className={`w-16 h-16 flex items-center justify-center relative
         ${isLight ? 'bg-amber-100' : 'bg-amber-800'}
-        ${isSelected ? 'bg-blue-300' : ''}
-        ${isPossibleMove ? 'bg-green-200' : ''}
+        ${isSelected ? 'bg-blue-400/50' : ''}
+        ${isPossibleMove ? 'bg-green-300/30' : ''}
         cursor-pointer
         transition-colors
-        hover:opacity-75`}
+        hover:opacity-80`}
         >
             <Piece piece={piece} />
+            {isPossibleMove && !piece && (
+                <div className="absolute w-4 h-4 bg-green-500/50 rounded-full" />
+            )}
         </div>
     );
 };

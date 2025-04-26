@@ -4,12 +4,12 @@ export const COLORS = {
 } as const;
 
 export const PIECE_TYPES = {
-    KING: 'king',
-    QUEEN: 'queen',
-    ROOK: 'rook',
-    BISHOP: 'bishop',
-    KNIGHT: 'knight',
-    PAWN: 'pawn',
+    KING: 'k',
+    QUEEN: 'q',
+    ROOK: 'r',
+    BISHOP: 'b',
+    KNIGHT: 'n',
+    PAWN: 'p',
 } as const;
 
 export const INITIAL_BOARD = [
@@ -24,16 +24,14 @@ export const INITIAL_BOARD = [
 ];
 
 export const UNICODE_PIECES = {
-    wk: '♔',
-    wq: '♕',
-    wr: '♖',
-    wb: '♗',
-    wn: '♘',
-    wp: '♙',
-    bk: '♚',
-    bq: '♛',
-    br: '♜',
-    bb: '♝',
-    bn: '♞',
-    bp: '♟',
+    wk: '♔', wq: '♕', wr: '♖', wb: '♗', wn: '♘', wp: '♙',
+    bk: '♚', bq: '♛', br: '♜', bb: '♝', bn: '♞', bp: '♟',
+};
+
+export const PIECE_MOVEMENTS = {
+    [PIECE_TYPES.KING]: [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]],
+    [PIECE_TYPES.QUEEN]: [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]],
+    [PIECE_TYPES.ROOK]: [[1, 0], [-1, 0], [0, 1], [0, -1]],
+    [PIECE_TYPES.BISHOP]: [[1, 1], [-1, -1], [1, -1], [-1, 1]],
+    [PIECE_TYPES.KNIGHT]: [[2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [1, -2], [-1, 2], [-1, -2]],
 };

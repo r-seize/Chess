@@ -1,24 +1,29 @@
 'use client';
 
 import { useReducer, useState, useEffect } from 'react';
-import { COLORS, INITIAL_BOARD } from '../utils/constants';
+import { COLORS, INITIAL_BOARD, CASTLING_RIGHTS, PIECE_TYPES } from '../utils/constants';
 import { chessEngine } from './chessEngine';
 import {
     getPieceColor,
     convertAlgebraicToIndices,
-    convertIndicesToAlgebraic
+    convertIndicesToAlgebraic,
+    isValidSquare
 } from '../utils/helpers';
 
 type Action =
     | { type: 'MOVE_PIECE'; from: string; to: string }
     | { type: 'SWITCH_TURN' }
-    | { type: 'SELECT_PIECE'; position: string | null };
+    | { type: 'SELECT_PIECE'; position: string | null }
+    | { type: 'UPDATE_CASTLING'; rights: string[] }
+    | { type: 'SET_EN_PASSANT'; square: string | null };
 
 type GameState = {
     board: (string | null)[][];
     capturedPieces: string[];
     currentPlayer: typeof COLORS.WHITE | typeof COLORS.BLACK;
     selectedPiece: string | null;
+    castlingRights: Set<string>;
+    enPassantSquare: string | null;
 };
 
 const initialState: GameState = {
@@ -26,6 +31,8 @@ const initialState: GameState = {
     capturedPieces: [],
     currentPlayer: COLORS.WHITE,
     selectedPiece: null,
+    castlingRights: new Set(Object.values(CASTLING_RIGHTS)),
+    enPassantSquare: null,
 };
 
 function gameReducer(state: GameState, action: Action): GameState {
@@ -35,31 +42,51 @@ function gameReducer(state: GameState, action: Action): GameState {
             const [fromRow, fromCol] = convertAlgebraicToIndices(action.from);
             const [toRow, toCol] = convertAlgebraicToIndices(action.to);
 
-            const capturedPiece = newBoard[toRow][toCol];
-            if (capturedPiece) {
-                newBoard[toRow][toCol] = null;
+            if (!isValidSquare(fromRow, fromCol) || !isValidSquare(toRow, toCol)) {
+                return state;
             }
 
-            newBoard[toRow][toCol] = newBoard[fromRow][fromCol];
+            const piece = newBoard[fromRow][fromCol]!;
+
+            if (piece[1] === PIECE_TYPES.KING && Math.abs(fromCol - toCol) === 2) {
+                const rookCol = toCol > fromCol ? 7 : 0;
+                const newRookCol = toCol > fromCol ? 5 : 3;
+                newBoard[toRow][newRookCol] = newBoard[fromRow][rookCol];
+                newBoard[fromRow][rookCol] = null;
+            }
+
+            newBoard[toRow][toCol] = piece;
             newBoard[fromRow][fromCol] = null;
+
+            const newCastlingRights = new Set(state.castlingRights);
+            if (piece[1] === PIECE_TYPES.KING) {
+                newCastlingRights.delete(CASTLING_RIGHTS.WHITE_KINGSIDE);
+                newCastlingRights.delete(CASTLING_RIGHTS.WHITE_QUEENSIDE);
+            }
+            if (piece[1] === PIECE_TYPES.ROOK) {
+                if (fromRow === 7 && fromCol === 0) newCastlingRights.delete(CASTLING_RIGHTS.WHITE_QUEENSIDE);
+                if (fromRow === 7 && fromCol === 7) newCastlingRights.delete(CASTLING_RIGHTS.WHITE_KINGSIDE);
+            }
 
             return {
                 ...state,
                 board: newBoard,
-                capturedPieces: capturedPiece
-                    ? [...state.capturedPieces, capturedPiece]
-                    : state.capturedPieces
+                castlingRights: newCastlingRights,
+                enPassantSquare: piece[1] === PIECE_TYPES.PAWN && Math.abs(fromRow - toRow) === 2
+                    ? convertIndicesToAlgebraic((fromRow + toRow) / 2, fromCol)
+                    : null
             };
         }
+
         case 'SWITCH_TURN':
             return {
                 ...state,
-                currentPlayer: state.currentPlayer === COLORS.WHITE
-                    ? COLORS.BLACK
-                    : COLORS.WHITE
+                currentPlayer: state.currentPlayer === COLORS.WHITE ? COLORS.BLACK : COLORS.WHITE
             };
+
         case 'SELECT_PIECE':
             return { ...state, selectedPiece: action.position };
+
         default:
             return state;
     }
@@ -68,18 +95,12 @@ function gameReducer(state: GameState, action: Action): GameState {
 export const useGameState = () => {
     const [state, dispatch] = useReducer(gameReducer, initialState);
     const [possibleMoves, setPossibleMoves] = useState<string[]>([]);
-    const [gameMode, setGameMode] = useState<'PVP' | 'PVB'>('PVP');
-
-    const getPieceAtPosition = (position: string) => {
-        const [row, col] = convertAlgebraicToIndices(position);
-        return state.board[row][col];
-    };
 
     const handleSquareClick = (position: string) => {
         if (!state.selectedPiece) {
             const piece = getPieceAtPosition(position);
             if (piece && getPieceColor(piece) === state.currentPlayer) {
-                const moves = chessEngine.getPossibleMoves(position, state.board);
+                const moves = chessEngine.getPossibleMoves(position, state.board, state);
                 setPossibleMoves(moves);
                 dispatch({ type: 'SELECT_PIECE', position });
             }
@@ -93,37 +114,14 @@ export const useGameState = () => {
         }
     };
 
-    const makeBotMove = () => {
-        const botPieces = state.board.flatMap((row, i) =>
-            row.map((piece, j) =>
-                piece?.startsWith('b') ? convertIndicesToAlgebraic(i, j) : null
-            ).filter(Boolean) as string[]
-        );
-
-        if (botPieces.length > 0) {
-            const randomPiece = botPieces[Math.floor(Math.random() * botPieces.length)];
-            const moves = chessEngine.getPossibleMoves(randomPiece, state.board);
-
-            if (moves.length > 0) {
-                const randomMove = moves[Math.floor(Math.random() * moves.length)];
-                setTimeout(() => {
-                    dispatch({ type: 'MOVE_PIECE', from: randomPiece, to: randomMove });
-                    dispatch({ type: 'SWITCH_TURN' });
-                }, 500);
-            }
-        }
+    const getPieceAtPosition = (position: string) => {
+        const [row, col] = convertAlgebraicToIndices(position);
+        return isValidSquare(row, col) ? state.board[row][col] : null;
     };
-
-    useEffect(() => {
-        if (gameMode === 'PVB' && state.currentPlayer === COLORS.BLACK) {
-            makeBotMove();
-        }
-    }, [state.currentPlayer, gameMode]);
 
     return {
         ...state,
         possibleMoves,
-        handleSquareClick,
-        setGameMode
+        handleSquareClick
     };
 };

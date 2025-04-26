@@ -41,6 +41,6 @@ export const CASTLING_RIGHTS = {
     WHITE_QUEENSIDE: 'WHITE_QUEENSIDE',
     BLACK_KINGSIDE: 'BLACK_KINGSIDE',
     BLACK_QUEENSIDE: 'BLACK_QUEENSIDE',
-  } as const;
-  
-  export const PROMOTION_PIECES = ['q', 'r', 'b', 'n'] as const;
+} as const;
+
+export const PROMOTION_PIECES = ['q', 'r', 'b', 'n'] as const;

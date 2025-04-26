@@ -35,3 +35,12 @@ export const PIECE_MOVEMENTS = {
     [PIECE_TYPES.BISHOP]: [[1, 1], [-1, -1], [1, -1], [-1, 1]],
     [PIECE_TYPES.KNIGHT]: [[2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [1, -2], [-1, 2], [-1, -2]],
 };
+
+export const CASTLING_RIGHTS = {
+    WHITE_KINGSIDE: 'WHITE_KINGSIDE',
+    WHITE_QUEENSIDE: 'WHITE_QUEENSIDE',
+    BLACK_KINGSIDE: 'BLACK_KINGSIDE',
+    BLACK_QUEENSIDE: 'BLACK_QUEENSIDE',
+  } as const;
+  
+  export const PROMOTION_PIECES = ['q', 'r', 'b', 'n'] as const;

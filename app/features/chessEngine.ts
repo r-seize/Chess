@@ -6,6 +6,8 @@ import {
 } from '../utils/helpers';
 import { COLORS, PIECE_TYPES, PIECE_MOVEMENTS, CASTLING_RIGHTS } from '../utils/constants';
 
+type PieceType = 'k' | 'q' | 'r' | 'b' | 'n' | 'p';
+
 const getSlidingMoves = (position: string, board: (string | null)[][], directions: number[][], maxSteps = 8) => {
     const [row, col] = convertAlgebraicToIndices(position);
     if (!isValidSquare(row, col)) return [];
@@ -43,11 +45,11 @@ export const chessEngine = {
         if (!piece) return [];
 
         const color = getPieceColor(piece)!;
-        const type = piece[1] as keyof typeof PIECE_MOVEMENTS;
+        const type = piece[1] as PieceType;
         const moves = [];
 
         switch (type) {
-            case PIECE_TYPES.PAWN:
+            case PIECE_TYPES.PAWN: {
                 const direction = color === COLORS.WHITE ? -1 : 1;
                 const startRow = color === COLORS.WHITE ? 6 : 1;
 
@@ -66,15 +68,15 @@ export const chessEngine = {
                         if (target && getPieceColor(target) !== color) {
                             moves.push(convertIndicesToAlgebraic(newRow, newCol));
                         }
-                        // Prise en passant
                         if (!target && gameState.enPassantSquare === convertIndicesToAlgebraic(newRow, newCol)) {
                             moves.push(convertIndicesToAlgebraic(newRow, newCol));
                         }
                     }
                 });
                 break;
+            }
 
-            case PIECE_TYPES.KING:
+            case PIECE_TYPES.KING: {
                 PIECE_MOVEMENTS[type].forEach(([dx, dy]) => {
                     const newRow = row + dx;
                     const newCol = col + dy;
@@ -85,24 +87,48 @@ export const chessEngine = {
                         }
                     }
                 });
-                // Roque
+
                 if (row === 7 && col === 4 && color === COLORS.WHITE) {
                     if (gameState.castlingRights.has(CASTLING_RIGHTS.WHITE_KINGSIDE)) {
-                        moves.push('g1');
+                        if (board[7][5] === null && board[7][6] === null &&
+                            !this.isSquareAttacked('e1', COLORS.BLACK, board) &&
+                            !this.isSquareAttacked('f1', COLORS.BLACK, board) &&
+                            !this.isSquareAttacked('g1', COLORS.BLACK, board)) {
+                            moves.push('g1');
+                        }
                     }
+
                     if (gameState.castlingRights.has(CASTLING_RIGHTS.WHITE_QUEENSIDE)) {
-                        moves.push('c1');
+                        if (board[7][1] === null && board[7][2] === null && board[7][3] === null &&
+                            !this.isSquareAttacked('e1', COLORS.BLACK, board) &&
+                            !this.isSquareAttacked('d1', COLORS.BLACK, board) &&
+                            !this.isSquareAttacked('c1', COLORS.BLACK, board)) {
+                            moves.push('c1');
+                        }
                     }
                 }
+
                 if (row === 0 && col === 4 && color === COLORS.BLACK) {
                     if (gameState.castlingRights.has(CASTLING_RIGHTS.BLACK_KINGSIDE)) {
-                        moves.push('g8');
+                        if (board[0][5] === null && board[0][6] === null &&
+                            !this.isSquareAttacked('e8', COLORS.WHITE, board) &&
+                            !this.isSquareAttacked('f8', COLORS.WHITE, board) &&
+                            !this.isSquareAttacked('g8', COLORS.WHITE, board)) {
+                            moves.push('g8');
+                        }
                     }
+
                     if (gameState.castlingRights.has(CASTLING_RIGHTS.BLACK_QUEENSIDE)) {
-                        moves.push('c8');
+                        if (board[0][1] === null && board[0][2] === null && board[0][3] === null &&
+                            !this.isSquareAttacked('e8', COLORS.WHITE, board) &&
+                            !this.isSquareAttacked('d8', COLORS.WHITE, board) &&
+                            !this.isSquareAttacked('c8', COLORS.WHITE, board)) {
+                            moves.push('c8');
+                        }
                     }
                 }
                 break;
+            }
 
             case PIECE_TYPES.KNIGHT:
                 PIECE_MOVEMENTS[type].forEach(([dx, dy]) => {

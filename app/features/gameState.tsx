@@ -24,6 +24,7 @@ type GameState = {
     selectedPiece: string | null;
     castlingRights: Set<string>;
     enPassantSquare: string | null;
+    promotionSquare: string | null;
 };
 
 const initialState: GameState = {
@@ -33,6 +34,7 @@ const initialState: GameState = {
     selectedPiece: null,
     castlingRights: new Set(Object.values(CASTLING_RIGHTS)),
     enPassantSquare: null,
+    promotionSquare: null,
 };
 
 function gameReducer(state: GameState, action: Action): GameState {
@@ -68,15 +70,30 @@ function gameReducer(state: GameState, action: Action): GameState {
                 if (fromRow === 7 && fromCol === 7) newCastlingRights.delete(CASTLING_RIGHTS.WHITE_KINGSIDE);
             }
 
+            const isPromotion = piece[1] === PIECE_TYPES.PAWN && 
+                (toRow === 0 || toRow === 7);
+
             return {
                 ...state,
                 board: newBoard,
                 castlingRights: newCastlingRights,
                 enPassantSquare: piece[1] === PIECE_TYPES.PAWN && Math.abs(fromRow - toRow) === 2
                     ? convertIndicesToAlgebraic((fromRow + toRow) / 2, fromCol)
-                    : null
+                    : null,
+                promotionSquare: isPromotion ? action.to : null
             };
         }
+
+        case 'HANDLE_PROMOTION':
+            const [row, col] = convertAlgebraicToIndices(state.promotionSquare!);
+            const newBoard = state.board.map(row => [...row]);
+            newBoard[row][col] = `${state.currentPlayer[0]}${action.piece}`;
+            
+            return {
+                ...state,
+                board: newBoard,
+                promotionSquare: null
+            };j
 
         case 'SWITCH_TURN':
             return {
@@ -95,6 +112,7 @@ function gameReducer(state: GameState, action: Action): GameState {
 export const useGameState = () => {
     const [state, dispatch] = useReducer(gameReducer, initialState);
     const [possibleMoves, setPossibleMoves] = useState<string[]>([]);
+    const [gameMode, setGameMode] = useState<'PVP' | 'PVB'>('PVP');
 
     const handleSquareClick = (position: string) => {
         if (!state.selectedPiece) {
@@ -121,6 +139,8 @@ export const useGameState = () => {
 
     return {
         ...state,
+        gameMode,
+        setGameMode,
         possibleMoves,
         handleSquareClick
     };
